@@ -19,7 +19,7 @@ The server uses stdio transport and creates `memory.db` in the project root.
 ## Run From GitHub With `bunx`
 
 ```bash
-bunx --bun github:<owner>/<repo>#main
+bunx --bun github:mrorigo/simple-memory-mcp#main
 ```
 
 Because of the `bin` entry, this starts the `simple-memory-mcp` CLI directly.
@@ -31,7 +31,7 @@ For MCP client configuration (example):
   "mcpServers": {
     "simple_memory": {
       "command": "bunx",
-      "args": ["--bun", "github:<owner>/<repo>#main"]
+      "args": ["--bun", "github:mrorigo/simple=memory-mcp#main"]
     }
   }
 }
