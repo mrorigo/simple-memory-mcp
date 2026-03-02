@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>simple-memory-mcp</title>
+    <style>
+      :root {
+        --sky-1: #b9f0ff;
+        --sky-2: #e9fbff;
+        --mint: #98f5c4;
+        --peach: #ffd2b1;
+        --sun: #ffcd58;
+        --ink: #1f2740;
+        --berry: #ff6b9f;
+        --leaf: #26b67a;
+        --card: #fffef8;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "Comic Sans MS", "Trebuchet MS", "Avenir Next", sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at 15% 10%, #ffffffa8 0 80px, transparent 81px),
+          radial-gradient(circle at 85% 22%, #ffffff99 0 60px, transparent 61px),
+          linear-gradient(180deg, var(--sky-1) 0%, var(--sky-2) 45%, #f8fff1 100%);
+        display: grid;
+        place-items: center;
+        padding: 24px;
+      }
+
+      .scene {
+        width: min(920px, 100%);
+        background: var(--card);
+        border: 4px solid var(--ink);
+        border-radius: 30px;
+        box-shadow: 0 16px 0 #1f274033, 0 30px 50px #1f274022;
+        padding: clamp(20px, 4vw, 40px);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .sun {
+        position: absolute;
+        top: 18px;
+        right: 20px;
+        width: 72px;
+        height: 72px;
+        border-radius: 50%;
+        background: var(--sun);
+        border: 4px solid var(--ink);
+        box-shadow: 0 0 0 10px #ffd86666;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(2rem, 4.4vw, 3.8rem);
+        line-height: 1;
+        letter-spacing: 0.5px;
+      }
+
+      .tag {
+        display: inline-block;
+        margin-top: 14px;
+        padding: 8px 14px;
+        background: var(--mint);
+        border: 3px solid var(--ink);
+        border-radius: 999px;
+        font-weight: 700;
+      }
+
+      .lead {
+        max-width: 62ch;
+        margin: 16px 0 26px;
+        font-size: 1.08rem;
+      }
+
+      .buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      .btn {
+        text-decoration: none;
+        font-weight: 800;
+        padding: 12px 18px;
+        border: 3px solid var(--ink);
+        border-radius: 16px;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+        display: inline-block;
+      }
+
+      .btn:hover {
+        transform: translateY(-2px) rotate(-1deg);
+        box-shadow: 0 8px 0 #1f274022;
+      }
+
+      .btn.cta {
+        color: var(--ink);
+        background: var(--peach);
+      }
+
+      .btn.link {
+        color: #fff;
+        background: var(--berry);
+      }
+
+      .ground {
+        margin-top: 28px;
+        height: 95px;
+        border: 4px solid var(--ink);
+        border-radius: 26px;
+        background:
+          radial-gradient(circle at 16% 42%, #ffffff88 0 20px, transparent 21px),
+          linear-gradient(120deg, #bff8d7 0%, #8ce7be 70%);
+        position: relative;
+      }
+
+      .blob {
+        position: absolute;
+        bottom: 16px;
+        width: 80px;
+        height: 52px;
+        border-radius: 40px;
+        border: 3px solid var(--ink);
+        background: #fff;
+        animation: drift 4.5s ease-in-out infinite;
+      }
+
+      .b1 { left: 18px; animation-delay: 0s; }
+      .b2 {
+        left: 120px;
+        background: #fff6cd;
+        animation-duration: 5.3s;
+        animation-delay: 0.3s;
+      }
+      .b3 {
+        left: 224px;
+        background: #ffe4f1;
+        animation-duration: 4.9s;
+        animation-delay: 0.6s;
+      }
+
+      .eye {
+        position: absolute;
+        top: 16px;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--ink);
+      }
+
+      .eye.left { left: 24px; }
+      .eye.right {
+        right: 24px;
+        animation: wink 3.6s steps(1, end) infinite;
+      }
+
+      .b2 .eye.right { animation-duration: 4.2s; }
+      .b3 .eye.right { animation-duration: 5s; }
+
+      @keyframes drift {
+        0%,
+        100% {
+          transform: translateX(0);
+        }
+        50% {
+          transform: translateX(8px);
+        }
+      }
+
+      @keyframes wink {
+        0%,
+        86%,
+        100% {
+          transform: scaleY(1);
+        }
+        88%,
+        90% {
+          transform: scaleY(0.12);
+        }
+      }
+
+      .footer-note {
+        margin-top: 16px;
+        font-size: 0.95rem;
+        opacity: 0.85;
+      }
+
+      @media (max-width: 700px) {
+        .ground {
+          height: 120px;
+        }
+
+        .blob { bottom: 14px; }
+        .b2 { left: 105px; }
+        .b3 { left: 192px; }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="scene">
+      <div class="sun" aria-hidden="true"></div>
+      <h1>simple-memory-mcp</h1>
+      <p class="tag">Cute, fast, BM25-powered memory server</p>
+      <p class="lead">
+        Store notes, search with deterministic SQLite FTS5 scoring, and plug it into your MCP clients.
+        Bun-native, tiny, and quick to run.
+      </p>
+
+      <div class="buttons">
+        <a class="btn cta" href="https://bun.sh" target="_blank" rel="noreferrer">bunx --bun github:mrorigo/simple-memory-mcp#main</a>
+        <a class="btn link" href="https://github.com/mrorigo/simple-memory-mcp" target="_blank" rel="noreferrer">GitHub: mrorigo/simple-memory-mcp</a>
+      </div>
+
+      <div class="ground" aria-hidden="true">
+        <div class="blob b1">
+          <span class="eye left"></span>
+          <span class="eye right"></span>
+        </div>
+        <div class="blob b2">
+          <span class="eye left"></span>
+          <span class="eye right"></span>
+        </div>
+        <div class="blob b3">
+          <span class="eye left"></span>
+          <span class="eye right"></span>
+        </div>
+      </div>
+
+      <p class="footer-note">Tip: use the bunx command above in your MCP config command args.</p>
+    </main>
+  </body>
+</html>

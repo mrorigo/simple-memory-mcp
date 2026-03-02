@@ -3,8 +3,12 @@
   "module": "index.ts",
   "type": "module",
   "private": true,
+  "bin": {
+    "simple-memory-mcp": "./bin/simple-memory-mcp.ts"
+  },
   "scripts": {
     "start": "bun run index.ts",
+    "smoke": "bun test smoke.test.ts",
     "test": "bun test",
     "typecheck": "bunx tsc --noEmit"
   },

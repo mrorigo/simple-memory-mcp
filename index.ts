@@ -201,15 +201,20 @@ export function buildServer(store = new MemoryStore()): McpServer {
   return server;
 }
 
-async function main() {
-  const server = buildServer();
+function resolveDatabasePath(): string {
+  return process.env.MEMORY_DB_PATH?.trim() || "memory.db";
+}
+
+export async function startServer(databasePath = resolveDatabasePath()): Promise<void> {
+  const store = new MemoryStore(databasePath);
+  const server = buildServer(store);
   const transport = new StdioServerTransport();
   await server.connect(transport);
   console.error("simple-memory-mcp running on stdio");
 }
 
 if (import.meta.main) {
-  main().catch((error) => {
+  startServer().catch((error) => {
     console.error("Server error:", error);
     process.exit(1);
   });

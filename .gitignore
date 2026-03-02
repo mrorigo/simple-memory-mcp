@@ -5,6 +5,9 @@ node_modules
 out
 dist
 *.tgz
+memory.db
+memory.db-shm
+memory.db-wal
 
 # code coverage
 coverage
