@@ -1,0 +1,5 @@
+default_priority = 2
+compact_threshold_days = 30
+use_index = false
+output_format = "table"
+auto_close_on_commit = false
