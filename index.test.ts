@@ -43,4 +43,21 @@ describe("MemoryStore", () => {
 
     store.close();
   });
+
+  test("rejects ingest when fields are not valid UTF-8 text", () => {
+    const dbPath = join(tmpdir(), `memory-test-${Date.now()}-${Math.random()}.db`);
+    dbPaths.push(dbPath);
+
+    const store = new MemoryStore(dbPath);
+
+    expect(() =>
+      store.ingestDocument({
+        filename: "bad-note.md",
+        content: `Invalid surrogate: \ud800`,
+        attribution: "tests",
+      })
+    ).toThrow("valid UTF-8 text");
+
+    store.close();
+  });
 });

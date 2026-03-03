@@ -20,6 +20,7 @@ type RankedMemoryRow = MemoryRow & {
 const DECAY_RATE = 0.05;
 const DEFAULT_LIMIT = 5;
 const MAX_LIMIT = 50;
+const UTF8_VALIDATION_ERROR = "Document fields must be valid UTF-8 text.";
 
 export class MemoryStore {
   private readonly db: Database;
@@ -43,6 +44,11 @@ export class MemoryStore {
     createdAt?: string;
   }): void {
     const { filename, content, attribution, createdAt } = params;
+    assertUtf8Text(filename);
+    assertUtf8Text(content);
+    if (attribution !== undefined) {
+      assertUtf8Text(attribution);
+    }
 
     const createdAtValue = createdAt ?? new Date().toISOString();
 
@@ -112,6 +118,47 @@ export class MemoryStore {
   private escapeForPhraseQuery(query: string): string {
     return `"${query.replaceAll('"', '""')}"`;
   }
+}
+
+function assertUtf8Text(value: string): void {
+  if (hasLoneSurrogate(value)) {
+    throw new TypeError(UTF8_VALIDATION_ERROR);
+  }
+
+  const encoded = new TextEncoder().encode(value);
+  try {
+    const decoded = new TextDecoder("utf-8", { fatal: true }).decode(encoded);
+    if (decoded !== value) {
+      throw new TypeError(UTF8_VALIDATION_ERROR);
+    }
+  } catch {
+    throw new TypeError(UTF8_VALIDATION_ERROR);
+  }
+}
+
+function hasLoneSurrogate(value: string): boolean {
+  for (let index = 0; index < value.length; index += 1) {
+    const codeUnit = value.charCodeAt(index);
+    if (codeUnit < 0xd800 || codeUnit > 0xdfff) {
+      continue;
+    }
+
+    const next = index + 1 < value.length ? value.charCodeAt(index + 1) : -1;
+    const isLeading = codeUnit >= 0xd800 && codeUnit <= 0xdbff;
+    const isTrailing = codeUnit >= 0xdc00 && codeUnit <= 0xdfff;
+    const hasValidTrailing = next >= 0xdc00 && next <= 0xdfff;
+
+    if (isLeading && hasValidTrailing) {
+      index += 1;
+      continue;
+    }
+
+    if (isTrailing || isLeading) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 function formatResults(rows: RankedMemoryRow[]): string {
