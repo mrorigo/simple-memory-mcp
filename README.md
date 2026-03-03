@@ -40,7 +40,7 @@ For MCP client configuration (example):
 ## Tools
 
 - `ingest_document`
-  - Inputs: `filename` (string), `content` (string), `attribution` (optional string)
+  - Inputs: `filename` (string path to a UTF-8 text file)
 - `search_memory`
   - Inputs: `query` (string), `limit` (optional number, default `5`, max `50`)
   - Ranking: `|bm25| * (1 / (1 + 0.05 * ageInDays))`

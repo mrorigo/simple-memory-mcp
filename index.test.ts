@@ -55,8 +55,33 @@ describe("MemoryStore", () => {
         filename: "bad-note.md",
         content: `Invalid surrogate: \ud800`,
         attribution: "tests",
+        createdAt: "2026-03-01T00:00:00.000Z",
       })
     ).toThrow("valid UTF-8 text");
+
+    store.close();
+  });
+
+  test("rejects ingest when createdAt is missing or invalid", () => {
+    const dbPath = join(tmpdir(), `memory-test-${Date.now()}-${Math.random()}.db`);
+    dbPaths.push(dbPath);
+
+    const store = new MemoryStore(dbPath);
+
+    expect(() =>
+      store.ingestDocument({
+        filename: "missing-created-at.md",
+        content: "content",
+      } as any)
+    ).toThrow("createdAt");
+
+    expect(() =>
+      store.ingestDocument({
+        filename: "invalid-created-at.md",
+        content: "content",
+        createdAt: "not-a-date",
+      })
+    ).toThrow("createdAt");
 
     store.close();
   });

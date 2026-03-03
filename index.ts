@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { Database } from "bun:sqlite";
+import { stat } from "node:fs/promises";
 import * as z from "zod/v4";
 
 type MemoryRow = {
@@ -21,6 +22,9 @@ const DECAY_RATE = 0.05;
 const DEFAULT_LIMIT = 5;
 const MAX_LIMIT = 50;
 const UTF8_VALIDATION_ERROR = "Document fields must be valid UTF-8 text.";
+const CREATED_AT_VALIDATION_ERROR = "Document createdAt must be a valid ISO-8601 timestamp.";
+const FILE_READ_ERROR_PREFIX = "Failed to ingest file";
+const FILE_CREATED_AT_ERROR = "Could not determine file created timestamp.";
 
 export class MemoryStore {
   private readonly db: Database;
@@ -41,7 +45,7 @@ export class MemoryStore {
     filename: string;
     content: string;
     attribution?: string;
-    createdAt?: string;
+    createdAt: string;
   }): void {
     const { filename, content, attribution, createdAt } = params;
     assertUtf8Text(filename);
@@ -49,15 +53,14 @@ export class MemoryStore {
     if (attribution !== undefined) {
       assertUtf8Text(attribution);
     }
-
-    const createdAtValue = createdAt ?? new Date().toISOString();
+    assertValidCreatedAt(createdAt);
 
     this.db
       .query(
         `INSERT INTO memory (filename, content, attribution, created_at)
          VALUES (?, ?, ?, ?)`
       )
-      .run(filename, content, attribution ?? null, createdAtValue);
+      .run(filename, content, attribution ?? null, createdAt);
   }
 
   search(params: { query: string; limit?: number; now?: number }): RankedMemoryRow[] {
@@ -161,6 +164,38 @@ function hasLoneSurrogate(value: string): boolean {
   return false;
 }
 
+function assertValidCreatedAt(value: string): void {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    throw new TypeError(CREATED_AT_VALIDATION_ERROR);
+  }
+
+  if (!Number.isFinite(Date.parse(value))) {
+    throw new TypeError(CREATED_AT_VALIDATION_ERROR);
+  }
+}
+
+async function readFileForIngest(filePath: string): Promise<{ content: string; createdAt: string }> {
+  const file = Bun.file(filePath);
+  const bytes = new Uint8Array(await file.arrayBuffer());
+
+  let content: string;
+  try {
+    content = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch {
+    throw new TypeError(UTF8_VALIDATION_ERROR);
+  }
+
+  const fileStats = await stat(filePath);
+  if (!Number.isFinite(fileStats.birthtimeMs) || fileStats.birthtimeMs <= 0) {
+    throw new TypeError(FILE_CREATED_AT_ERROR);
+  }
+
+  return {
+    content,
+    createdAt: fileStats.birthtime.toISOString(),
+  };
+}
+
 function formatResults(rows: RankedMemoryRow[]): string {
   if (rows.length === 0) {
     return "No matching documents found.";
@@ -194,16 +229,25 @@ export function buildServer(store = new MemoryStore()): McpServer {
     {
       description: "Ingest a document into the personal memory database.",
       inputSchema: {
-        filename: z.string().min(1).describe("Document filename"),
-        content: z.string().min(1).describe("Document text content"),
-        attribution: z
-          .string()
-          .optional()
-          .describe("Optional source, author, or attribution metadata"),
+        filename: z.string().min(1).describe("Path to a UTF-8 text document file"),
       },
     },
-    async ({ filename, content, attribution }) => {
-      store.ingestDocument({ filename, content, attribution });
+    async ({ filename }) => {
+      try {
+        const { content, createdAt } = await readFileForIngest(filename);
+        store.ingestDocument({ filename, content, createdAt });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text",
+              text: `${FILE_READ_ERROR_PREFIX}: ${filename}. ${message}`,
+            },
+          ],
+        };
+      }
 
       return {
         content: [

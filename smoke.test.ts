@@ -1,11 +1,12 @@
 import { afterEach, expect, test } from "bun:test";
-import { rmSync } from "node:fs";
+import { rmSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 
 const tempDbPaths: string[] = [];
+const tempFilePaths: string[] = [];
 type TextContentBlock = { type: "text"; text: string };
 
 afterEach(() => {
@@ -14,11 +15,18 @@ afterEach(() => {
     rmSync(`${dbPath}-shm`, { force: true });
     rmSync(`${dbPath}-wal`, { force: true });
   }
+  for (const filePath of tempFilePaths.splice(0)) {
+    rmSync(filePath, { force: true });
+  }
 });
 
 test("MCP stdio smoke: list tools, ingest, and search", async () => {
   const dbPath = join(tmpdir(), `memory-smoke-${Date.now()}-${Math.random()}.db`);
+  const filePath = join(tmpdir(), `smoke-note-${Date.now()}-${Math.random()}.md`);
   tempDbPaths.push(dbPath);
+  tempFilePaths.push(filePath);
+  await Bun.write(filePath, "Bun MCP smoke test memory content.");
+  const expectedCreatedAt = statSync(filePath).birthtime.toISOString();
 
   const transport = new StdioClientTransport({
     command: "bun",
@@ -53,9 +61,7 @@ test("MCP stdio smoke: list tools, ingest, and search", async () => {
     const ingest = await client.callTool({
       name: "ingest_document",
       arguments: {
-        filename: "smoke-note.md",
-        content: "Bun MCP smoke test memory content.",
-        attribution: "smoke-suite",
+        filename: filePath,
       },
     });
 
@@ -87,8 +93,9 @@ test("MCP stdio smoke: list tools, ingest, and search", async () => {
       .map((item) => item.text)
       .join("\n");
 
-    expect(text).toContain("smoke-note.md");
+    expect(text).toContain(filePath);
     expect(text).toContain("Bun MCP smoke test memory content.");
+    expect(text).toContain(`Date: ${expectedCreatedAt}`);
   } finally {
     await client.close();
     await transport.close();
