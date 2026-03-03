@@ -44,6 +44,9 @@ For MCP client configuration (example):
 - `search_memory`
   - Inputs: `query` (string), `limit` (optional number, default `5`, max `50`)
   - Ranking: `|bm25| * (1 / (1 + 0.05 * ageInDays))`
+- `scrub_document`
+  - Inputs: `filename` (string path/identifier as stored in memory)
+  - Behavior: removes all matching records from the memory database only; does not delete or modify files on disk.
 
 ## Verify
 

@@ -57,6 +57,7 @@ test("MCP stdio smoke: list tools, ingest, and search", async () => {
 
     expect(toolNames).toContain("ingest_document");
     expect(toolNames).toContain("search_memory");
+    expect(toolNames).toContain("scrub_document");
 
     const ingest = await client.callTool({
       name: "ingest_document",
@@ -96,6 +97,61 @@ test("MCP stdio smoke: list tools, ingest, and search", async () => {
     expect(text).toContain(filePath);
     expect(text).toContain("Bun MCP smoke test memory content.");
     expect(text).toContain(`Date: ${expectedCreatedAt}`);
+
+    const scrub = await client.callTool({
+      name: "scrub_document",
+      arguments: {
+        filename: filePath,
+      },
+    });
+
+    if (!("content" in scrub)) {
+      throw new Error("Expected content result from scrub_document");
+    }
+
+    const scrubText = (scrub.content as unknown[])
+      .filter(
+        (item): item is TextContentBlock =>
+          typeof item === "object" &&
+          item !== null &&
+          "type" in item &&
+          "text" in item &&
+          (item as { type?: unknown }).type === "text" &&
+          typeof (item as { text?: unknown }).text === "string"
+      )
+      .map((item) => item.text)
+      .join("\n");
+
+    expect(scrubText).toContain("Scrubbed");
+    expect(scrubText).toContain("not modified");
+
+    const postScrubSearch = await client.callTool({
+      name: "search_memory",
+      arguments: {
+        query: "smoke test memory",
+        limit: 3,
+      },
+    });
+
+    if (!("content" in postScrubSearch)) {
+      throw new Error("Expected content result from search_memory after scrub");
+    }
+
+    const postScrubText = (postScrubSearch.content as unknown[])
+      .filter(
+        (item): item is TextContentBlock =>
+          typeof item === "object" &&
+          item !== null &&
+          "type" in item &&
+          "text" in item &&
+          (item as { type?: unknown }).type === "text" &&
+          typeof (item as { text?: unknown }).text === "string"
+      )
+      .map((item) => item.text)
+      .join("\n");
+
+    expect(postScrubText).toContain("No matching documents found.");
+    expect(statSync(filePath).isFile()).toBe(true);
   } finally {
     await client.close();
     await transport.close();

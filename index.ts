@@ -63,6 +63,22 @@ export class MemoryStore {
       .run(filename, content, attribution ?? null, createdAt);
   }
 
+  scrubDocument(params: { filename: string }): number {
+    const { filename } = params;
+    assertUtf8Text(filename);
+
+    const countRow = this.db
+      .query(`SELECT COUNT(*) AS total FROM memory WHERE filename = ?`)
+      .get(filename) as { total: number } | null;
+    const total = Number(countRow?.total ?? 0);
+
+    if (total > 0) {
+      this.db.query(`DELETE FROM memory WHERE filename = ?`).run(filename);
+    }
+
+    return total;
+  }
+
   search(params: { query: string; limit?: number; now?: number }): RankedMemoryRow[] {
     const { query, now = Date.now() } = params;
     const requestedLimit = params.limit ?? DEFAULT_LIMIT;
@@ -283,6 +299,38 @@ export function buildServer(store = new MemoryStore()): McpServer {
           {
             type: "text",
             text: formatResults(rows),
+          },
+        ],
+      };
+    }
+  );
+
+  server.registerTool(
+    "scrub_document",
+    {
+      description: "Remove ingested document entries from the memory database by filename.",
+      inputSchema: {
+        filename: z.string().min(1).describe("Document filename/path to remove from memory database"),
+      },
+    },
+    async ({ filename }) => {
+      const removedCount = store.scrubDocument({ filename });
+      if (removedCount === 0) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `No memory records found for: ${filename}. Source file on disk was not modified.`,
+            },
+          ],
+        };
+      }
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Scrubbed ${removedCount} memory record(s) for: ${filename}. Source file on disk was not modified.`,
           },
         ],
       };

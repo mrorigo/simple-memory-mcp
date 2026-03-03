@@ -85,4 +85,42 @@ describe("MemoryStore", () => {
 
     store.close();
   });
+
+  test("scrubs all records for a filename without touching other documents", () => {
+    const dbPath = join(tmpdir(), `memory-test-${Date.now()}-${Math.random()}.db`);
+    dbPaths.push(dbPath);
+
+    const store = new MemoryStore(dbPath);
+
+    store.ingestDocument({
+      filename: "dup.md",
+      content: "First duplicate content",
+      createdAt: "2026-03-01T00:00:00.000Z",
+    });
+    store.ingestDocument({
+      filename: "dup.md",
+      content: "Second duplicate content",
+      createdAt: "2026-03-02T00:00:00.000Z",
+    });
+    store.ingestDocument({
+      filename: "keep.md",
+      content: "This should remain searchable",
+      createdAt: "2026-03-03T00:00:00.000Z",
+    });
+
+    const removedCount = store.scrubDocument({ filename: "dup.md" });
+    expect(removedCount).toBe(2);
+
+    const duplicateResults = store.search({ query: "duplicate content", limit: 10 });
+    expect(duplicateResults.length).toBe(0);
+
+    const remainingResults = store.search({ query: "remain searchable", limit: 10 });
+    expect(remainingResults.length).toBeGreaterThan(0);
+    expect(remainingResults[0]?.filename).toBe("keep.md");
+
+    const missingRemoved = store.scrubDocument({ filename: "does-not-exist.md" });
+    expect(missingRemoved).toBe(0);
+
+    store.close();
+  });
 });
