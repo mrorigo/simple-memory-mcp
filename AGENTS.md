@@ -1,4 +1,12 @@
 
+This system uses Pearls for task management. Use the `prl` cli command to interact with Pearls;
+
+- Use `prl ready --json --limit 1` to find the next task
+- Use `prl show prl-<id> --json` to show details
+- Use `prl close prl-<id>` when Pearl is completed, verified and comitted
+
+--- 
+
 Default to using Bun instead of Node.js.
 
 - Use `bun <file>` instead of `node <file>` or `ts-node <file>`
